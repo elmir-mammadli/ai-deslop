@@ -41,6 +41,26 @@ grep -rnE 'title: "[^"]+\.",|heading="[^"]+\."|title="[^"]+\."' src
 
 A small script that walks `<h1|h2|h3|PageTitle ...>…</…>` blocks, strips tags, and flags text ending in "." or containing `<em>` is more reliable than grep for multi-line headings.
 
+## Copy and honesty
+
+`audit.py` covers these on visible text. Without it:
+
+```bash
+grep -rniE 'seamless|elevat|unlock|cutting.edge|world.class|game.chang|next.gen|peace of mind|hassle.free|one.stop' src
+grep -rniE "in today's|let that sink in|ready to [a-z]+.*\?|not just an? |more than just" src
+grep -rnE '[0-9][0-9,.]*[kKM]?\+ [A-Za-z]|99\.9%|#1\b|5.star|[34]\.[0-9] (rating|stars)|since (19|20)[0-9]{2}' src
+grep -rniE 'trusted by|as seen (on|in)|award.winning|SOC ?2|HIPAA|licensed (and|&) insured|testimonials? *[:=]' src
+grep -rnE 'href="#?"|href=\{"#"\}|javascript:|onClick=\{\(\) => \{\}\}' src
+grep -rnE 'Lorem ipsum|Your Company|John Doe|Jane Doe|TODO|TBD' src
+```
+
+Then the checks no script can make:
+
+- Read every heading next to the sentence under it; cut the one that only repeats the other.
+- Read a row of cards aloud; if every card has the same shape and length, rewrite each from its own fact.
+- Open every nav link, button and form at 1440 and 390. Write down where each one went.
+- For every number, rating, logo, award or certification left on the page, name its source. No source, no claim.
+
 ## After removal: find what broke
 
 ```bash

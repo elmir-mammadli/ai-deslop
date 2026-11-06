@@ -13,7 +13,9 @@
   <a href="https://elmir-mammadli.github.io/ai-deslop/">Documentation</a> ·
   <a href="#install">Install</a> ·
   <a href="#the-audit-script">Audit script</a> ·
-  <a href="#the-20-tells">The 20 tells</a>
+  <a href="#the-20-tells">The 20 tells</a> ·
+  <a href="#copy-tells">Copy tells</a> ·
+  <a href="#the-honesty-gate">Honesty gate</a>
 </p>
 
 ---
@@ -22,8 +24,9 @@ Generated pages share a look: an uppercase eyebrow over every heading, `01 / 02 
 
 AI De-slop gives Claude a precise playbook for removing them:
 
-- **Exact rules** for 20 tells, with the action to take and the cases where the element should stay.
-- **An audit script** that scans CSS, HTML, JSX/TSX, Vue, Svelte, Astro and data files, lists every hit with file and line, and fails until fix-level tells reach zero.
+- **Exact rules** for 20 visual tells and 11 copy tells, with the action to take and the cases where the element should stay.
+- **An honesty gate** that blocks invented proof: unsourced numbers, made-up reviews and logos, fake urgency, dead links and leftover placeholders.
+- **An audit script** that scans CSS, HTML, JSX/TSX, Vue, Svelte, Astro and data files, lists every hit with file and line, and fails until fix-level tells reach zero. It reads styles and markup for the visual tells, and the visible text for the copy tells and honesty claims.
 - **A repair checklist** for what removal breaks: grid columns that held a number, indents that aligned past one, dead classes, fonts that change line counts.
 - **A definition of done** and a fixed report format, so a pass is never declared finished on a subset.
 
@@ -84,7 +87,7 @@ python3 skills/ai-deslop/scripts/audit.py src --json > audit.json
 | `--only` | Report only these tells, comma separated |
 | `--json` | Machine-readable output |
 
-Hits are grouped into **fix** tells, which must reach zero, and **check** tells (gradient, glow, CSS counters, eyebrow, accent stripe, emphasis in headings, shaped corners), which need a human verdict but never fail the run. The exit code is `0` when no fix-level tells remain and `1` otherwise, so the script works as a CI gate.
+Hits are grouped into **fix** tells, which must reach zero, and **check** tells, which need a human verdict but never fail the run. Check tells are gradients, glows, CSS counters, eyebrows, accent stripes, emphasis in headings, shaped corners, "not just X" contrasts, Title Case, emoji, exclamation marks, em dashes, scattered bold, and the honesty claims (`stat`, `proof`, `fake-live`), which pass only with a real source. The exit code is `0` when no fix-level tells remain and `1` otherwise, so the script works as a CI gate.
 
 Sample run on the files in [`examples/`](examples):
 
@@ -95,7 +98,7 @@ python3 skills/ai-deslop/scripts/audit.py examples/before.html
   examples/before.html:24  text-transform: uppercase; letter-spacing: 0.18em; color: #7c3aed;
 ...
 Summary
-  total            41  (fix: 29, check: 12)
+  total            65  (fix: 41, check: 24)
 
 FAIL: fix-level tells remain
 ```
@@ -117,6 +120,14 @@ border-radius: 999px; /* deslop-keep: rounded pipe ends */
 ```jsx
 {/* deslop-keep: printed paper edge is the art direction */}
 <feTurbulence type="fractalNoise" baseFrequency="0.9" />
+```
+
+To skip a whole block, such as a table that quotes the tells as examples, wrap it:
+
+```html
+<!-- deslop-keep-start: this table quotes the tells as examples -->
+...
+<!-- deslop-keep-end -->
 ```
 
 Always give a reason. The marker is a decision, not an escape hatch.
@@ -145,6 +156,37 @@ Always give a reason. The marker is a decision, not an escape hatch.
 | 18 | ALL CAPS subtitles | Remove uppercase and its tracking | Wordmarks, signage, condensed display brands |
 | 19 | Gradient backgrounds | Solid color | Data scales, photo scrims, hairlines |
 | 20 | Periods in titles | Drop the final period of headings and title fields | Body text, multi-sentence paragraphs, abbreviations |
+
+## Copy tells
+
+| # | Tell | Action | Keep when |
+|---|------|--------|-----------|
+| C1 | Stock words: seamless, elevate, unlock, cutting-edge, world-class, peace of mind, hassle-free | Say the concrete thing: what is done, how fast, for how much | The word is literal, as when a locksmith unlocks |
+| C2 | Hype openers and closers: "In today's fast-paced world", "Let that sink in", "Ready to take the next step?" | Delete; start with the fact, end on the action | Never |
+| C3 | Staccato headings: "Fast. Simple. Reliable." | One natural sentence | A question plus an instruction |
+| C4 | "Not just X, it's Y" | State Y plainly | It corrects a real misunderstanding |
+| C5 | A heading restated by the sentence under it | Cut the sentence, or make the heading the fact | Never |
+| C6 | Every card the same sentence shape and length | Write each card from its own fact | Data tables |
+| C7 | Title Case On Headings And Buttons | Sentence case | Proper nouns and real titles |
+| C8 | Emoji as bullets or in headings | Remove | Messaging products, emoji-led brands |
+| C9 | Exclamation marks in interface copy | A period, or nothing | Quoted speech, one real success message |
+| C10 | Em dashes in copy | Comma, colon or two sentences | The house style allows them |
+| C11 | Bold sprinkled through body text | At most one bold fact per section | A warning or a price that must not be missed |
+
+## The honesty gate
+
+A page is not finished while it claims something nobody can back up. There is no style reason to keep any of these, only a real source.
+
+| # | Claim | Action |
+|---|-------|--------|
+| H1 | Numbers that need a source: 10,000+ customers, 99.9% uptime, 4.9 rating, since 1998 | Keep only with a source; otherwise remove, or turn into a true process fact |
+| H2 | Testimonials, star ratings, "Trusted by" logo bars, awards, certifications, compliance badges | Keep only what the business confirmed; never write one |
+| H3 | Invented team members, founders, quotes, addresses and history | Remove, or leave an honest placeholder on drafts |
+| H4 | Fake live signals: "3 people viewing", "Only 2 spots left", countdowns | Remove unless real data drives it |
+| H5 | Dead ends: `href="#"`, empty click handlers, nav items to missing pages | Point it somewhere real, or remove the control |
+| H6 | Placeholder left in: lorem ipsum, Your Company, Jane Doe, TODO | Real content, or remove the block |
+
+Sample and concept sites may invent a business name and contact details only in reserved formats (555-01XX numbers, `.example` domains), with one disclosure in the footer. They never invent reviews, ratings, logos, awards or counts. The gate is proved, not asserted: every link, button and form is clicked, and where it went is recorded in the report.
 
 The full rules, including copy rewrites, the repair checklist and the definition of done, are in [`skills/ai-deslop/SKILL.md`](skills/ai-deslop/SKILL.md).
 

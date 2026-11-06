@@ -1,7 +1,7 @@
 {
   "name": "ai-deslop",
-  "version": "1.0.0",
-  "description": "Find and remove the visual and copy tells that make a website look AI-generated, with an audit script that gates on zero fix-level tells.",
+  "version": "1.1.0",
+  "description": "Find and remove the visual and copy tells that make a website look AI-generated, block invented proof and dead links, with an audit script that gates on zero fix-level tells.",
   "author": {
     "name": "Elmir Mammadli",
     "url": "https://github.com/elmir-mammadli"
@@ -9,5 +9,15 @@
   "homepage": "https://elmir-mammadli.github.io/ai-deslop/",
   "repository": "https://github.com/elmir-mammadli/ai-deslop",
   "license": "MIT",
-  "keywords": ["design", "ui", "web", "css", "frontend", "ai-slop", "review"]
+  "keywords": [
+    "design",
+    "ui",
+    "web",
+    "css",
+    "frontend",
+    "ai-slop",
+    "review",
+    "copywriting",
+    "honesty"
+  ]
 }

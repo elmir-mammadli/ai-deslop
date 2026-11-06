@@ -1,13 +1,13 @@
 ---
 name: ai-deslop
-description: Find and remove the visual and copy tells that make a website or UI look AI-generated ("AI slop"), and design new pages that never have them. Use when the user says de-slop, deslop, "remove AI slop", "looks AI-made", "looks generated", "make it look human-designed", "art-directed", or shares the 20 AI design slop indicators. Also use whenever building or reviewing a landing page, marketing site, portfolio, showroom or UI, so the result never needs de-slopping later.
+description: Find and remove the visual and copy tells that make a website or UI look AI-generated ("AI slop"), block invented proof (fake stats, reviews, logos, dead links), and design new pages that never have them. Use when the user says de-slop, deslop, "remove AI slop", "looks AI-made", "looks generated", "make it look human-designed", "art-directed", or shares the 20 AI design slop indicators. Also use whenever building or reviewing a landing page, marketing site, portfolio, showroom or UI, so the result never needs de-slopping later.
 ---
 
 # AI de-slop
 
 Goal: a page that reads as designed by a person with a point of view. One typographic voice, real content where labels used to be, decoration only where it carries meaning. Removing tells is half the job; the other half is proving nothing broke where they used to be.
 
-Work in this order and do not skip steps: **scope → audit → keep list → edit → repair → verify → report**. A pass is done only when every gate in "Definition of done" is met.
+Work in this order and do not skip steps: **scope → audit → keep list → edit → repair → verify → report**. The visual tells (section 3), the copy tells (section 5) and the honesty gate (section 6) are all part of every pass. A pass is done only when every gate in "Definition of done" is met.
 
 ## 1. Scope
 
@@ -25,8 +25,9 @@ python3 <skill-dir>/scripts/audit.py src --only caps,tracking,period      # focu
 python3 <skill-dir>/scripts/audit.py src --json > audit.json               # machine-readable
 ```
 
-- `fix` tells must reach zero (or carry a reasoned `deslop-keep` marker). `check` tells (gradient, glow, counter-css, eyebrow, stripe, em-heading, shape) need a human verdict each, recorded in the report.
-- The scanner skips comments and node_modules/build output. It cannot judge intent, find layout breakage, or see rendered text; that is what steps 5 and 6 are for.
+- `fix` tells must reach zero (or carry a reasoned `deslop-keep` marker). `check` tells need a human verdict each, recorded in the report: gradient, glow, counter-css, eyebrow, stripe, em-heading, shape, not-but, title-case, emoji, exclaim, em-dash, bold, and the honesty claims stat, proof and fake-live (these pass only with a source the user gave).
+- The copy and honesty checks read visible text only: text nodes in markup and prose-like strings in data files. They cannot judge restated headings (C5) or template cards (C6); read those by eye.
+- The scanner skips comments and node_modules/build output. It cannot judge intent, find layout breakage, or see rendered text; that is what the repair and verify steps are for.
 - Extra searches the script does not cover are in `references/audit.md`.
 
 ## 3. The 20 tells: exact actions and keep rules
@@ -64,7 +65,25 @@ Also remove: an accent-colored phrase inside a headline (same tell as #2), outli
 - When swapping, also update: font imports, CSS variables, layout class lists, header comments that name fonts, and any data that displays font names (catalogue cards, style guides). Then re-check every headline whose width or line count depended on the old font.
 - Do not load italic or unused weights after removing italics.
 
-## 5. Copy rules
+## 5. Copy tells
+
+Generated copy has its own tells, and they show up on the same pages as the visual ones. Read every heading, button, card and paragraph, not only the stylesheet. The script flags the ids in the second column.
+
+| # | Tell | Script id | Exact action | Keep only when |
+|---|------|-----------|--------------|----------------|
+| C1 | Stock words: seamless, elevate, unlock, empower, leverage, cutting-edge, game-changer, revolutionize, next-gen, world-class, state-of-the-art, supercharge, unleash, transformative, holistic, unparalleled, delve, synergy; and vague fillers: countless, a wide range of, all your needs, one-stop shop, peace of mind, hassle-free, tailored to your needs | `stock-word` | Replace with the concrete thing: what is done, to what, how fast, for how much. "Seamless booking" → "Book online in two steps" | The word is literal for the trade (a locksmith unlocks, an elevator company elevates); mark it `deslop-keep` |
+| C2 | Hype openers, reaction prompts, chatbot closers: "In today's fast-paced world", "Imagine a world where", "Say goodbye to", "Let that sink in", "Here's the thing", "The best part?", "Ready to take the next step?", "Why wait?", "Don't just take our word for it" | `hype` | Delete. Start with the fact, end on the action ("Book a visit") | Never |
+| C3 | Staccato and triad headings: "Fast. Simple. Reliable.", "Design. Build. Launch.", "Close the valve. Then call." | `staccato` | One natural sentence (see the rewrites below) | A question plus an instruction: "Water off? Book a morning visit" |
+| C4 | "Not just X, it's Y" and "not X, but Y" contrasts | `not-but` | State Y plainly | It corrects a real, common misunderstanding about the trade |
+| C5 | A heading restated by the sentence under it | by eye | Cut the sentence, or make the heading the fact and the sentence the detail | Never |
+| C6 | Template cards: every card the same sentence shape, length and verb | by eye | Write each card from its own fact; let lengths differ | A data table, where sameness is the point |
+| C7 | Title Case In Headings, Buttons, Cards And Bullets | `title-case` | Sentence case | Proper nouns, product and place names, real titles of works |
+| C8 | Emoji as bullets or in headings and buttons | `emoji` | Remove; use the list itself or a real icon with meaning | The product is about messaging or the brand voice is built on it |
+| C9 | Exclamation marks in UI copy | `exclaim` | Period, or nothing | Quoted speech; one success message after a real action |
+| C10 | Em dashes in copy | `em-dash` | Comma, colon, parentheses, or two sentences | The project's own style guide allows them |
+| C11 | Bold sprinkled through body text | `bold` | Remove; at most one bold fact per section | A real warning or a price the reader must not miss |
+
+Copy rules that always apply:
 
 - Headings: no final period, no `<em>`, no accent span, sentence case.
 - Rewrite staccato two-sentence headings into one natural sentence:
@@ -73,19 +92,35 @@ Also remove: an accent-colored phrase inside a headline (same tell as #2), outli
   - "Fast, contained, explained." → "Fast, contained and explained"
   - "A professional website. A clear price." → "A professional website at a clear price"
   - "Seven layers. One you see." → "Seven layers, and you see one"
-  - A question plus an instruction may stay as two parts: "Water off? Book a morning visit".
+- Replace adjectives with facts the business can stand behind: a time, a price, an area, a step, a name. If no fact exists, cut the line rather than invent one (see the honesty gate).
 - When removing an eyebrow that carried a fact, the fact must survive somewhere visible.
 - Follow the project's own style rules (spelling variant, banned words, dash style). Check spelling consistency after edits.
-- Never invent proof: no fake reviews, counts, logos, awards. Label samples once, in the footer.
 
-## 6. Edit
+## 6. Honesty gate
+
+A page is not done while it claims something nobody can back up. These are hard failures: there is no style reason to keep any of them, only a real source. Ask the user for the source; if there is none, remove the claim.
+
+| # | Claim | Script id | Exact action |
+|---|-------|-----------|--------------|
+| H1 | Numbers that need a source: "10,000+ customers", "99.9% uptime", "#1", "5-star rated", "4.9 rating", "20 years of experience", "since 1998" | `stat` | Keep only with a source the user gave; otherwise remove, or turn into a true process fact ("We reply the same day") |
+| H2 | Proof: testimonials, reviews, star ratings, "Trusted by" and "As seen in" logo bars, awards, certifications, licenses, insurance, compliance (SOC 2, HIPAA, ISO 27001, PCI DSS, GDPR-compliant) | `proof` | Keep only what the user confirmed. Never write a testimonial, a reviewer name, an avatar or a logo the business did not supply |
+| H3 | Invented people and history: team members, founders, quotes, addresses, license numbers, founding stories | by eye | Remove, or use an honest placeholder the user will replace ("Your photo here") on drafts only |
+| H4 | Fake live signals and urgency: "3 people viewing", "Only 2 spots left", "Selling fast", countdown timers, "Available now" dots | `fake-live` | Remove unless a real data source drives it; then name that source in the report |
+| H5 | Dead ends: `href="#"`, empty `href`, `javascript:` links, `onClick={() => {}}`, nav items pointing to sections or pages that do not exist, forms that submit nowhere | `dead-end` | Point it at something real (a section, a page, `tel:`, `mailto:`, a form handler) or remove the control |
+| H6 | Placeholder left in: lorem ipsum, "Your Company", "Company Name", John or Jane Doe, TODO, TBD | `placeholder` | Replace with real content or remove the block |
+
+Sample and concept work (demos, portfolios, pitches) may invent a business name and contact details only in reserved formats (555-01XX phone numbers, `.example` domains), with one disclosure line in the footer. It still never invents reviews, ratings, client logos, awards or counts.
+
+Prove the gate, do not assert it: click every nav link, button and form at 1440 and 390, and record each result in the report ("Book a visit → /contact#form, form shows the success message"). An unrecorded control counts as unchecked.
+
+## 7. Edit
 
 - Mechanical changes (caps, tracking, italics, radii, heading periods) by script; judgment calls (rewrites, gadgets, layouts) by hand.
 - Edit CSS rule by rule with a small parser (match `selector { body }` blocks, change the body, write back). Never run one large backtracking regex over a whole stylesheet.
 - Keep list first, edits second. Write down which selectors keep caps and which numbers stay, then pass that list to the script.
-- Mark deliberate exceptions inline so future audits skip them: `/* deslop-keep: reason */` in CSS, `{/* deslop-keep: reason */}` in JSX, on the same or the previous line.
+- Mark deliberate exceptions inline so future audits skip them: `/* deslop-keep: reason */` in CSS, `{/* deslop-keep: reason */}` in JSX, on the same or the previous line. Wrap a whole block (a table that quotes the tells, a style guide page) in `deslop-keep-start: reason` and `deslop-keep-end`.
 
-## 7. Repair what removal breaks
+## 8. Repair what removal breaks
 
 Every removal can leave a hole. Check each of these, for every site:
 
@@ -96,7 +131,7 @@ Every removal can leave a hole. Check each of these, for every site:
 5. Headlines that overlapped an image or relied on a line count, after any font change.
 6. Never strip borders inside `::before` / `::after` without reading the rule: a left plus bottom border rotated 45° is a drawn checkmark.
 
-## 8. Verify
+## 9. Verify
 
 - Rendered check of every page at 1440 and 390 wide, with `prefers-reduced-motion: reduce` so animated sections render finished. Scroll the whole page before capturing so lazy images load; remove dev overlays. A blank image area is lazy loading or a stuck dev image optimizer until proven otherwise; compare with production before calling it a bug.
 - Automated pass on every route at both widths: zero console errors, zero horizontal overflow (`scrollWidth > innerWidth`).
@@ -105,12 +140,15 @@ Every removal can leave a hole. Check each of these, for every site:
 - Refresh thumbnails, previews and showroom images that show the old design, and re-check them.
 - Restore files that builds or dev servers rewrite (for example `tsconfig.json`, `next-env.d.ts`) before committing.
 
-## 9. Definition of done
+## 10. Definition of done
 
 All must be true:
 
 - [ ] Every item in scope was audited (stylesheets, markup, data, thumbnails).
 - [ ] `audit.py` reports `fix: 0`; every remaining `check` hit has a verdict.
+- [ ] Every heading, button and card was read for copy tells (C1 to C11), including the ones the script cannot see (C5, C6).
+- [ ] Honesty gate: every number, rating, logo, award and claim has a source the user gave, or is gone.
+- [ ] Every link, button and form was clicked at both widths, and each result is recorded.
 - [ ] Every exception is on the keep list or carries a `deslop-keep` marker with a reason.
 - [ ] Every page rendered and was looked at, at 1440 and 390.
 - [ ] Zero console errors and zero horizontal overflow on every route.
@@ -118,16 +156,17 @@ All must be true:
 - [ ] Previews and thumbnails refreshed.
 - [ ] Nothing pushed or published without the user's go-ahead.
 
-## 10. Report
+## 11. Report
 
 End with a short report in this shape:
 
 1. **Scope:** what was covered (count of sites and pages).
-2. **Removed:** per tell, what changed and roughly how many instances.
+2. **Removed:** per tell (visual and copy), what changed and roughly how many instances.
 3. **Kept on purpose:** each exception and its reason.
 4. **Repaired:** layout breakage found and fixed.
-5. **Verified:** each check and its result.
-6. **Open items:** anything not done or not verified, stated plainly.
+5. **Honesty:** each claim kept and its source; each control clicked and where it went.
+6. **Verified:** each check, the command or action used, and its result.
+7. **Open items:** anything not done or not verified, stated plainly.
 
 ## Pitfalls seen in practice
 
@@ -139,4 +178,4 @@ End with a short report in this shape:
 
 ## Designing new work without the tells
 
-Start from the subject, not a template: one display face and one text face chosen for the trade or audience, one accent color with a meaning, 0 to 6px corners, sentence-case labels, headings without periods, no eyebrows, no numbered sections unless order matters, real copy instead of placeholder labels, and every decorative element tied to something true about the business. Run `audit.py` before handing the work over.
+Start from the subject, not a template: one display face and one text face chosen for the trade or audience, one accent color with a meaning, 0 to 6px corners, sentence-case labels, headings without periods, no eyebrows, no numbered sections unless order matters, real copy instead of placeholder labels, and every decorative element tied to something true about the business. Write copy from facts the user gave; where a fact is missing, ask or leave the line out, never fill it with a number, a review or a logo. Run `audit.py` before handing the work over.

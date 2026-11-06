@@ -290,6 +290,7 @@
 
   /* Tells table */
   .tableWrap { overflow-x: auto; border-top: 1px solid var(--ink); }
+  .tableWrap + .intro { margin: 28px 0 0; }
 
   table { width: 100%; border-collapse: collapse; font-size: 17px; }
   th, td { padding: 13px 14px 13px 0; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: top; }
@@ -348,7 +349,7 @@
 <body>
   <div class="wrap">
     <header class="top">
-      <a class="mark" href="#">
+      <a class="mark" href="./">
         <img src="icon.png" alt="" width="28" height="28">
         AI De-slop
       </a>
@@ -356,6 +357,8 @@
         <a href="#install">Install</a>
         <a href="#how">How it works</a>
         <a href="#tells">The 20 tells</a>
+        <a href="#copy">Copy</a>
+        <a href="#honesty">Honesty</a>
         <a href="#audit">Audit script</a>
         <a href="https://github.com/elmir-mammadli/ai-deslop">GitHub</a>
       </nav>
@@ -490,6 +493,65 @@ cp -R /tmp/ai-deslop/skills/ai-deslop ~/.claude/skills/</pre>
       </div>
     </section>
 
+    <section id="copy" aria-labelledby="copy-title">
+      <h2 id="copy-title">Copy tells</h2>
+      <p class="intro">
+        Generated pages also read generated. These eleven show up next to the visual tells, and the script flags
+        every one it can see in the text of a page. The last two columns say what to write instead.
+      </p>
+      <div class="tableWrap">
+        <!-- deslop-keep-start: this table quotes the tells as examples -->
+        <table>
+          <thead>
+            <tr><th scope="col">#</th><th scope="col">Tell</th><th scope="col">Action</th><th scope="col">Keep when</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>C1</td><td>Stock words: seamless, elevate, unlock, cutting-edge, world-class, peace of mind, hassle-free</td><td>Say the concrete thing: what is done, how fast, for how much</td><td>The word is literal, as when a locksmith unlocks</td></tr>
+            <tr><td>C2</td><td>Hype openers and closers: “In today’s fast-paced world”, “Let that sink in”, “Ready to take the next step?”</td><td>Delete; start with the fact and end on the action</td><td>Never</td></tr>
+            <tr><td>C3</td><td>Staccato headings: “Fast. Simple. Reliable.”</td><td>One natural sentence</td><td>A question plus an instruction</td></tr>
+            <tr><td>C4</td><td>“Not just X, it’s Y”</td><td>State Y plainly</td><td>It corrects a real misunderstanding</td></tr>
+            <tr><td>C5</td><td>A heading restated by the sentence under it</td><td>Cut the sentence, or make the heading the fact</td><td>Never</td></tr>
+            <tr><td>C6</td><td>Every card the same sentence shape and length</td><td>Write each card from its own fact</td><td>Data tables</td></tr>
+            <tr><td>C7</td><td>Title Case On Headings And Buttons</td><td>Sentence case</td><td>Proper nouns and real titles</td></tr>
+            <tr><td>C8</td><td>Emoji as bullets or in headings</td><td>Remove</td><td>Messaging products, emoji-led brands</td></tr>
+            <tr><td>C9</td><td>Exclamation marks in interface copy</td><td>A period, or nothing</td><td>Quoted speech, one real success message</td></tr>
+            <tr><td>C10</td><td>Em dashes in copy</td><td>Comma, colon or two sentences</td><td>The house style allows them</td></tr>
+            <tr><td>C11</td><td>Bold sprinkled through body text</td><td>At most one bold fact per section</td><td>A warning or a price that must not be missed</td></tr>
+          </tbody>
+        </table>
+        <!-- deslop-keep-end -->
+      </div>
+    </section>
+
+    <section id="honesty" aria-labelledby="honesty-title">
+      <h2 id="honesty-title">The honesty gate</h2>
+      <p class="intro">
+        A page is not finished while it claims something nobody can back up. There is no style reason to keep any
+        of these, only a real source. Claude asks for the source, and removes the claim when there is none.
+      </p>
+      <div class="tableWrap">
+        <!-- deslop-keep-start: this table quotes the claims as examples -->
+        <table>
+          <thead>
+            <tr><th scope="col">#</th><th scope="col">Claim</th><th scope="col">Action</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>H1</td><td>Numbers that need a source: 10,000+ customers, 99.9% uptime, 4.9 rating, since 1998</td><td>Keep only with a source; otherwise remove, or turn into a true process fact</td></tr>
+            <tr><td>H2</td><td>Testimonials, star ratings, “Trusted by” logo bars, awards, certifications, compliance badges</td><td>Keep only what the business confirmed; never write one</td></tr>
+            <tr><td>H3</td><td>Invented team members, founders, quotes, addresses and history</td><td>Remove, or leave an honest placeholder on drafts</td></tr>
+            <tr><td>H4</td><td>Fake live signals: “3 people viewing”, “Only 2 spots left”, countdowns</td><td>Remove unless real data drives it</td></tr>
+            <tr><td>H5</td><td>Dead ends: links to <code>#</code>, empty click handlers, nav items to missing pages</td><td>Point it somewhere real, or remove the control</td></tr>
+            <tr><td>H6</td><td>Placeholder left in: lorem ipsum, Your Company, Jane Doe, TODO</td><td>Real content, or remove the block</td></tr>
+          </tbody>
+        </table>
+        <!-- deslop-keep-end -->
+      </div>
+      <p class="intro">
+        The gate is proved, not asserted: Claude clicks every link, button and form at desktop and phone width and
+        records where each one went.
+      </p>
+    </section>
+
     <section id="audit" aria-labelledby="audit-title">
       <h2 id="audit-title">The audit script</h2>
       <div class="split">
@@ -497,11 +559,12 @@ cp -R /tmp/ai-deslop/skills/ai-deslop ~/.claude/skills/</pre>
           <p>
             <code>audit.py</code> ships inside the skill and also runs on its own with Python 3 and nothing else. It
             reads CSS, HTML, JSX and TSX, Vue, Svelte, Astro and data files, skips comments and build output, and
-            prints every hit with file and line.
+            prints every hit with file and line. It checks the visual tells in styles and markup, and the copy tells
+            and honesty claims in the visible text.
           </p>
           <p>
-            Fix-level tells must reach zero. Check-level tells, such as gradients, glows and eyebrows, need a
-            verdict but never fail the run. The exit code is 0 only when no fix-level tells remain, so it works as a
+            Fix-level tells must reach zero. Check-level tells, such as gradients, eyebrows and numbers that
+            need a source, need a verdict but never fail the run. The exit code is 0 only when no fix-level tells remain, so it works as a
             CI gate.
           </p>
           <p>
@@ -515,7 +578,7 @@ cp -R /tmp/ai-deslop/skills/ai-deslop ~/.claude/skills/</pre>
   examples/before.html:24  text-transform: uppercase; ...
   examples/before.html:47  STATUS: ACCEPTING CLIENTS
 <span class="dim">...</span>
-  total            41  (fix: 29, check: 12)
+  total            65  (fix: 41, check: 24)
 
 <span class="bad">FAIL: fix-level tells remain</span>
 
@@ -536,6 +599,10 @@ cp -R /tmp/ai-deslop/skills/ai-deslop ~/.claude/skills/</pre>
         </p>
         <pre>border-radius: 999px; /* deslop-keep: rounded pipe ends */
 
+&lt;!-- deslop-keep-start: a table of examples --&gt;
+...
+&lt;!-- deslop-keep-end --&gt;
+
 {/* deslop-keep: printed paper edge is the art direction */}
 &lt;feTurbulence type="fractalNoise" baseFrequency="0.9" /&gt;</pre>
       </div>
@@ -551,6 +618,9 @@ cp -R /tmp/ai-deslop/skills/ai-deslop ~/.claude/skills/</pre>
         <ul class="done">
           <li>Every page, component, data file and thumbnail in scope was audited</li>
           <li>The script reports zero fix-level tells, and every check has a verdict</li>
+          <li>Every heading, button and card was read for copy tells</li>
+          <li>Every number, rating, logo and claim has a source, or is gone</li>
+          <li>Every link, button and form was clicked, and where it went is recorded</li>
           <li>Every exception is on the keep list or carries a reasoned marker</li>
           <li>Every page was looked at, at desktop and phone width</li>
           <li>No console errors and no sideways scrolling on any route</li>
