@@ -1,0 +1,594 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI De-slop: take the generated look out of a website</title>
+<meta name="description" content="A Claude skill and audit script that find and remove the tells that make a website look AI-generated, then prove nothing broke.">
+<meta property="og:title" content="AI De-slop">
+<meta property="og:description" content="A Claude skill and audit script that find and remove the tells that make a website look AI-generated.">
+<meta property="og:image" content="https://elmir-mammadli.github.io/ai-deslop/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap">
+<style>
+  :root {
+    --paper: #f6f2e8;
+    --paper-2: #efe9db;
+    --ink: #1c1a16;
+    --ink-2: #4a463e;
+    --ink-3: #7a7466;
+    --rule: #d9d1bf;
+    --pencil: #c4321f;
+    --code-bg: #1c1a16;
+    --code-ink: #efe9db;
+    --serif: "Newsreader", Georgia, serif;
+    --code: ui-monospace, "SF Mono", Menlo, Consolas, monospace; /* deslop-keep: real code samples only */
+  }
+
+  * { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+  }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 19px;
+    line-height: 1.55;
+    font-optical-sizing: auto;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+  a:hover { color: var(--pencil); }
+  :focus-visible { outline: 2px solid var(--pencil); outline-offset: 3px; }
+
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+
+  /* Header */
+  .top {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 12px 24px;
+    padding: 22px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .mark { display: flex; flex: none; align-items: center; gap: 10px; font-weight: 600; font-size: 20px; text-decoration: none; white-space: nowrap; }
+  .mark img { width: 28px; height: 28px; border-radius: 3px; }
+
+  .top nav { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 17px; }
+  .top nav a { text-decoration: none; }
+  .top nav a:hover { text-decoration: underline; }
+
+  /* Hero */
+  .hero {
+    display: grid;
+    gap: 40px;
+    padding: 72px 0 56px;
+  }
+
+  @media (min-width: 900px) {
+    .hero { grid-template-columns: 1.15fr 0.85fr; align-items: end; padding: 104px 0 72px; }
+  }
+
+  h1 {
+    margin: 0;
+    font-size: clamp(46px, 7vw, 92px);
+    font-weight: 500;
+    line-height: 0.98;
+    max-width: 12ch;
+  }
+
+  .lede { margin: 0 0 24px; max-width: 40ch; font-size: 21px; color: var(--ink-2); }
+
+  .actions { display: flex; flex-wrap: wrap; gap: 12px; }
+
+  .btn {
+    display: inline-block;
+    padding: 12px 20px;
+    border: 1px solid var(--ink);
+    border-radius: 3px;
+    background: var(--ink);
+    color: var(--paper);
+    font-size: 17px;
+    font-weight: 500;
+    text-decoration: none;
+  }
+
+  .btn:hover { background: var(--pencil); border-color: var(--pencil); color: var(--paper); }
+  .btnLine { background: transparent; color: var(--ink); }
+  .btnLine:hover { background: transparent; color: var(--pencil); }
+
+  /* Proof sheet */
+  .proof {
+    position: relative;
+    margin: 0 0 96px;
+    padding: 40px 28px 36px;
+    background: #fffdf7;
+    border: 1px solid var(--rule);
+    box-shadow: 0 1px 0 var(--rule), 0 12px 24px -18px rgb(28 26 22 / 0.35);
+  }
+
+  @media (min-width: 900px) {
+    .proof { padding: 56px 220px 48px 64px; }
+  }
+
+  .slop { position: relative; }
+
+  .slopStatus {
+    display: inline-block;
+    margin: 0 0 18px;
+    padding: 5px 13px;
+    border-radius: 999px; /* deslop-keep: this is the specimen of tell 1 */
+    background: #ede6ff;
+    color: #6d3bd8;
+    font: 12px/1.4 var(--code); /* deslop-keep: specimen of tell 17 */
+  }
+
+  .slopEyebrow {
+    margin: 0 0 10px;
+    color: #6d3bd8;
+    font: 12px/1.4 var(--code); /* deslop-keep: specimen of tell 17 */
+    text-transform: uppercase; /* deslop-keep: specimen of tell 18 */
+    letter-spacing: 0.18em; /* deslop-keep: specimen of tell 18 */
+  }
+
+  .slopTitle {
+    margin: 0 0 12px;
+    font-family: Georgia, serif;
+    font-size: clamp(36px, 5vw, 60px);
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: -0.04em; /* deslop-keep: specimen of tell 4 */
+  }
+
+  .slopTitle .accent { color: #6d3bd8; font-style: italic; } /* deslop-keep: specimen of tell 2 */
+
+  .slopBody { margin: 0 0 22px; max-width: 34ch; color: #555; font-family: system-ui, sans-serif; font-size: 16px; }
+
+  .slopBtn {
+    display: inline-block;
+    padding: 12px 22px;
+    border-radius: 999px; /* deslop-keep: specimen of tell 1 */
+    background: #6d3bd8;
+    color: #fff;
+    font: 600 15px system-ui, sans-serif;
+  }
+
+  /* Red pencil marks over the specimen */
+  .strike {
+    text-decoration: line-through;
+    text-decoration-color: var(--pencil);
+    text-decoration-thickness: 2px;
+  }
+
+  .circle { position: relative; }
+  .circle::before {
+    content: "";
+    position: absolute;
+    inset: -6px -10px;
+    border: 2px solid var(--pencil);
+    border-radius: 50%;
+    transform: rotate(-3deg);
+  }
+
+  .note {
+    color: var(--pencil);
+    font-size: 16px;
+    line-height: 1.3;
+  }
+
+  .margin {
+    display: grid;
+    gap: 10px;
+    margin-top: 28px;
+    padding-top: 18px;
+    border-top: 1px dashed var(--pencil);
+  }
+
+  @media (min-width: 900px) {
+    .margin {
+      position: absolute;
+      top: 56px;
+      right: 28px;
+      width: 168px;
+      margin: 0;
+      padding: 0 0 0 18px;
+      border-top: 0;
+      border-left: 1px dashed var(--pencil);
+    }
+  }
+
+  .fixed {
+    margin-top: 40px;
+    padding-top: 32px;
+    border-top: 1px solid var(--rule);
+  }
+
+  .fixedTitle { margin: 0 0 10px; font-size: clamp(32px, 4.4vw, 52px); font-weight: 500; line-height: 1.02; max-width: 16ch; }
+  .fixedBody { margin: 0 0 20px; max-width: 42ch; color: var(--ink-2); }
+  .fixedNote { margin: 14px 0 0; font-size: 16px; color: var(--ink-3); }
+
+  .caption { margin: 18px 0 0; font-size: 16px; color: var(--ink-3); }
+
+  /* Sections */
+  section { padding: 0 0 96px; }
+
+  h2 {
+    margin: 0 0 20px;
+    padding-top: 28px;
+    border-top: 2px solid var(--ink);
+    font-size: clamp(32px, 4vw, 46px);
+    font-weight: 500;
+    line-height: 1.05;
+  }
+
+  h3 { margin: 0 0 8px; font-size: 23px; font-weight: 600; line-height: 1.2; }
+
+  .intro { max-width: 60ch; margin: 0 0 36px; color: var(--ink-2); }
+
+  .cols { display: grid; gap: 28px; }
+
+  @media (min-width: 860px) {
+    .cols { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px; }
+  }
+
+  .cols p { margin: 0 0 14px; color: var(--ink-2); font-size: 17px; }
+
+  pre {
+    margin: 0;
+    padding: 16px 18px;
+    overflow-x: auto;
+    border-radius: 3px;
+    background: var(--code-bg);
+    color: var(--code-ink);
+    font: 14px/1.6 var(--code);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  code { font-family: var(--code); font-size: 0.86em; }
+  p code, li code, td code { padding: 1px 5px; border-radius: 3px; background: var(--paper-2); }
+  pre .ok { color: #9fd18b; }
+  pre .bad { color: #f28b78; }
+  pre .dim { color: #9a9384; }
+
+  /* Order of work */
+  .order {
+    display: grid;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid var(--rule);
+  }
+
+  .order li {
+    display: grid;
+    gap: 4px 32px;
+    padding: 18px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  @media (min-width: 760px) {
+    .order li { grid-template-columns: 200px 1fr; }
+  }
+
+  .order strong { font-weight: 600; font-size: 21px; }
+  .order span { color: var(--ink-2); }
+
+  /* Tells table */
+  .tableWrap { overflow-x: auto; border-top: 1px solid var(--ink); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 17px; }
+  th, td { padding: 13px 14px 13px 0; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: top; }
+  th { font-weight: 600; color: var(--ink-2); }
+  td:first-child, th:first-child { width: 36px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+  td:nth-child(2) { font-weight: 600; min-width: 150px; }
+  td:last-child { color: var(--ink-2); }
+
+  /* Split blocks */
+  .split { display: grid; gap: 32px; }
+
+  @media (min-width: 900px) {
+    .split { grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: 56px; }
+  }
+
+  .split p { margin: 0 0 16px; color: var(--ink-2); }
+
+  .done { margin: 0; padding: 0; list-style: none; }
+
+  .done li {
+    position: relative;
+    padding: 12px 0 12px 34px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .done li::before {
+    content: "";
+    position: absolute;
+    left: 4px;
+    top: 19px;
+    width: 14px;
+    height: 7px;
+    border-left: 2px solid var(--pencil);
+    border-bottom: 2px solid var(--pencil);
+    transform: rotate(-45deg);
+  }
+
+  .faq { display: grid; gap: 28px; }
+
+  @media (min-width: 860px) {
+    .faq { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px 56px; }
+  }
+
+  .faq p { margin: 0; color: var(--ink-2); font-size: 17px; }
+
+  footer {
+    padding: 32px 0 48px;
+    border-top: 1px solid var(--rule);
+    color: var(--ink-3);
+    font-size: 16px;
+  }
+
+  footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 32px; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <a class="mark" href="#">
+        <img src="icon.png" alt="" width="28" height="28">
+        AI De-slop
+      </a>
+      <nav aria-label="Sections">
+        <a href="#install">Install</a>
+        <a href="#how">How it works</a>
+        <a href="#tells">The 20 tells</a>
+        <a href="#audit">Audit script</a>
+        <a href="https://github.com/elmir-mammadli/ai-deslop">GitHub</a>
+      </nav>
+    </header>
+
+    <div class="hero">
+      <h1>Take the generated look out of a website</h1>
+      <div>
+        <p class="lede">
+          A Claude skill and an audit script that find the tells which make a page look AI-made, remove them by
+          exact rules, and check that nothing broke where they used to be.
+        </p>
+        <div class="actions">
+          <a class="btn" href="#install">Install the skill</a>
+          <a class="btn btnLine" href="https://github.com/elmir-mammadli/ai-deslop">View on GitHub</a>
+        </div>
+      </div>
+    </div>
+
+    <figure class="proof" aria-labelledby="proof-caption">
+      <div class="slop" aria-hidden="true">
+        <p class="slopStatus"><span class="strike">● Accepting clients</span></p>
+        <p class="slopEyebrow"><span class="strike">// 01 / Studio</span></p>
+        <p class="slopTitle">Design that <span class="accent circle">moves</span> people<span class="circle">.</span></p>
+        <p class="slopBody"><span class="strike">We craft digital experiences. We build brands. We ship products that matter.</span></p>
+        <span class="slopBtn circle">Start a project</span>
+      </div>
+
+      <div class="margin" aria-hidden="true">
+        <p class="note">Status dot: a gadget with nothing behind it</p>
+        <p class="note">Eyebrow, mono, caps, a fake section number</p>
+        <p class="note">Accent italic and a period in a headline</p>
+        <p class="note">Three slogans where one fact would do</p>
+        <p class="note">Pill button</p>
+      </div>
+
+      <div class="fixed">
+        <p class="fixedTitle">Websites for shops that already have a reputation</p>
+        <p class="fixedBody">
+          We design sites for independent businesses that are busy through word of mouth and want the website to say
+          what their customers already say about them.
+        </p>
+        <a class="btn" href="#install" tabindex="-1">Book a first call</a>
+        <p class="fixedNote">Two new projects a month. The next opening is in March.</p>
+      </div>
+
+      <figcaption id="proof-caption" class="caption">
+        A typical generated hero, marked up in red the way an editor marks a proof, and the same block after a pass.
+        The fix is not only removal: the empty slogans became facts a customer can use.
+      </figcaption>
+    </figure>
+
+    <section id="install" aria-labelledby="install-title">
+      <h2 id="install-title">Install</h2>
+      <p class="intro">Pick the one that matches where you work. All three install the same skill.</p>
+      <div class="cols">
+        <div>
+          <h3>Claude Code plugin</h3>
+          <p>Two commands inside Claude Code. Updates arrive with the plugin.</p>
+          <pre>/plugin marketplace add elmir-mammadli/ai-deslop
+/plugin install ai-deslop@ai-deslop</pre>
+        </div>
+        <div>
+          <h3>Personal skill</h3>
+          <p>Copy the folder once and every project on your machine can use it.</p>
+          <pre>git clone https://github.com/elmir-mammadli/ai-deslop.git /tmp/ai-deslop
+cp -R /tmp/ai-deslop/skills/ai-deslop ~/.claude/skills/</pre>
+        </div>
+        <div>
+          <h3>Claude.ai</h3>
+          <p>
+            Download the skill zip from the
+            <a href="https://github.com/elmir-mammadli/ai-deslop/releases/latest">latest release</a>, then upload it
+            under Settings, Capabilities, Skills.
+          </p>
+          <p>For a team project, commit <code>skills/ai-deslop</code> to the repository's <code>.claude/skills/</code> folder instead.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="how" aria-labelledby="how-title">
+      <h2 id="how-title">How it works</h2>
+      <p class="intro">
+        Ask in plain words: "deslop the marketing site", "this page looks AI-made", or share the 20 indicators.
+        Claude then works in a fixed order and does not call the job done until every gate passes.
+      </p>
+      <ol class="order">
+        <li><strong>Scope</strong><span>Every page, shared component, data file and thumbnail. "All" means all, including the site that hosts the rest.</span></li>
+        <li><strong>Audit</strong><span>The script lists every candidate with file and line, then a visual read of each page catches what code search cannot.</span></li>
+        <li><strong>Keep list</strong><span>Before any edit, write down what stays and why: wordmarks in caps, numbers where order matters, a texture that is the art direction.</span></li>
+        <li><strong>Edit</strong><span>Mechanical changes by script, rule by rule. Rewrites, gadgets and layouts by hand.</span></li>
+        <li><strong>Repair</strong><span>Grid columns that held a number, indents that aligned past one, dead classes, headlines that a new font made wrap.</span></li>
+        <li><strong>Verify</strong><span>Every page at 1440 and 390 wide, every route free of console errors and sideways scrolling, type check, lint and build, and a clean re-audit.</span></li>
+        <li><strong>Report</strong><span>What was removed, what was kept and why, what broke and was repaired, what was checked, and anything still open.</span></li>
+      </ol>
+    </section>
+
+    <section id="tells" aria-labelledby="tells-title">
+      <h2 id="tells-title">The 20 tells</h2>
+      <p class="intro">
+        Each one comes with an exact action and the cases where the element should stay. The numbers follow the
+        widely shared list of AI design slop indicators, so a review can point to them.
+      </p>
+      <div class="tableWrap">
+        <table>
+          <thead>
+            <tr><th scope="col">#</th><th scope="col">Tell</th><th scope="col">Action</th><th scope="col">Keep when</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>1</td><td>Tags and pills</td><td>999px radius to 3 to 4px, or plain colored text</td><td>The tag carries state the reader acts on</td></tr>
+            <tr><td>2</td><td>Excessive italics</td><td>Remove italics and emphasis used for flair</td><td>Titles of works, quoted terms, wordmarks</td></tr>
+            <tr><td>3</td><td>Default AI fonts</td><td>Replace Instrument Serif and Sans, Geist, Space Grotesk and mono label fonts as the page voice</td><td>Never as the voice</td></tr>
+            <tr><td>4</td><td>Negative kerning</td><td>Remove all negative letter-spacing</td><td>Never</td></tr>
+            <tr><td>5</td><td>Over-detailed UI</td><td>Remove gadgets: live dots, fake trackers, cursor lenses, magnetic buttons</td><td>The gadget is the product</td></tr>
+            <tr><td>6</td><td>Overusing dividers</td><td>At most one structural rule per list</td><td>The rule groups rows</td></tr>
+            <tr><td>7</td><td>Shades and opacities</td><td>Solid tokens, no glows or soft 40px shadows</td><td>Photo scrims, one subtle elevation on a real overlay</td></tr>
+            <tr><td>8</td><td>Bordered containers</td><td>Unbox decorative cards, remove left accent stripes</td><td>Forms, tickets, tables, status stripes</td></tr>
+            <tr><td>9</td><td>Over-detailed diagrams</td><td>Cut plates, figure labels and legends that do not explain</td><td>Every element maps to something real</td></tr>
+            <tr><td>10</td><td>Verbose, redundant text</td><td>One footer disclosure instead of repeated notes</td><td>The note adds new information</td></tr>
+            <tr><td>11</td><td>Code breadcrumbs</td><td>Remove <code>// LABEL</code>, <code>/services</code>, <code>[1]</code>, <code>EV-01</code>, <code>STATUS:</code></td><td>A real navigation breadcrumb</td></tr>
+            <tr><td>12</td><td>Section numbering</td><td>Remove 01 /, chapters, roman numerals, padded counters</td><td>Order is the content, written as 1. not 01</td></tr>
+            <tr><td>13</td><td>Eyebrows</td><td>Remove, and move any fact they held into the heading or body</td><td>Form labels, legends, definition terms, column heads</td></tr>
+            <tr><td>14</td><td>Dithering and noise</td><td>Remove</td><td>The texture is the art direction, marked as a keep</td></tr>
+            <tr><td>15</td><td>ASCII images</td><td>Remove</td><td>Never by default</td></tr>
+            <tr><td>16</td><td>Squircles</td><td>12px and larger radii to 4 to 6px</td><td>True circles and deliberate shapes</td></tr>
+            <tr><td>17</td><td>Mono fonts</td><td>The text face with tabular figures</td><td>Real code</td></tr>
+            <tr><td>18</td><td>All caps subtitles</td><td>Remove uppercase and its letter-spacing</td><td>Wordmarks, signage, condensed display brands</td></tr>
+            <tr><td>19</td><td>Gradient backgrounds</td><td>Solid color</td><td>Data scales, photo scrims, hairlines</td></tr>
+            <tr><td>20</td><td>Periods in titles</td><td>Drop the final period of headings and title fields</td><td>Body text and abbreviations</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="audit" aria-labelledby="audit-title">
+      <h2 id="audit-title">The audit script</h2>
+      <div class="split">
+        <div>
+          <p>
+            <code>audit.py</code> ships inside the skill and also runs on its own with Python 3 and nothing else. It
+            reads CSS, HTML, JSX and TSX, Vue, Svelte, Astro and data files, skips comments and build output, and
+            prints every hit with file and line.
+          </p>
+          <p>
+            Fix-level tells must reach zero. Check-level tells, such as gradients, glows and eyebrows, need a
+            verdict but never fail the run. The exit code is 0 only when no fix-level tells remain, so it works as a
+            CI gate.
+          </p>
+          <p>
+            Pass <code>--keep-caps</code> for selectors that may keep capitals, <code>--only</code> to focus, and
+            <code>--json</code> for tooling.
+          </p>
+        </div>
+        <pre><span class="dim">$</span> python3 skills/ai-deslop/scripts/audit.py examples/before.html
+
+== caps [fix]: ALL CAPS text-transform or utility (18)  [3]
+  examples/before.html:24  text-transform: uppercase; ...
+  examples/before.html:47  STATUS: ACCEPTING CLIENTS
+<span class="dim">...</span>
+  total            41  (fix: 29, check: 12)
+
+<span class="bad">FAIL: fix-level tells remain</span>
+
+<span class="dim">$</span> python3 skills/ai-deslop/scripts/audit.py examples/after.html
+  total            0  (fix: 0, check: 0)
+
+<span class="ok">PASS: no fix-level tells left</span></pre>
+      </div>
+    </section>
+
+    <section aria-labelledby="keep-title">
+      <h2 id="keep-title">Keeping something on purpose</h2>
+      <div class="split">
+        <p>
+          Some tells are the right call: rounded ends on a drawn pipe, a print texture that is the whole art
+          direction. Mark the line, or the line above it, with a reason. The audit skips it, and the next person
+          reading the code knows it was a decision.
+        </p>
+        <pre>border-radius: 999px; /* deslop-keep: rounded pipe ends */
+
+{/* deslop-keep: printed paper edge is the art direction */}
+&lt;feTurbulence type="fractalNoise" baseFrequency="0.9" /&gt;</pre>
+      </div>
+    </section>
+
+    <section aria-labelledby="done-title">
+      <h2 id="done-title">When a pass is done</h2>
+      <div class="split">
+        <p>
+          The skill holds Claude to a written definition of done, so a job is never reported as finished on a subset
+          of pages or before the checks ran.
+        </p>
+        <ul class="done">
+          <li>Every page, component, data file and thumbnail in scope was audited</li>
+          <li>The script reports zero fix-level tells, and every check has a verdict</li>
+          <li>Every exception is on the keep list or carries a reasoned marker</li>
+          <li>Every page was looked at, at desktop and phone width</li>
+          <li>No console errors and no sideways scrolling on any route</li>
+          <li>Type check, lint, copy check and production build pass</li>
+          <li>Previews and thumbnails show the new design</li>
+          <li>Nothing was pushed or published without a go-ahead</li>
+        </ul>
+      </div>
+    </section>
+
+    <section aria-labelledby="faq-title">
+      <h2 id="faq-title">Questions</h2>
+      <div class="faq">
+        <div>
+          <h3>Does it flatten my design?</h3>
+          <p>No. It removes tells and keeps identity. A brand built on condensed capitals keeps them on the headlines that define it.</p>
+        </div>
+        <div>
+          <h3>Does it work without Claude?</h3>
+          <p>The audit script does. The judgment calls, rewrites and repairs are what the skill teaches Claude to make.</p>
+        </div>
+        <div>
+          <h3>Which stacks does it cover?</h3>
+          <p>Anything that ends up as CSS and markup: plain HTML, React and Next.js, Vue, Svelte, Astro, Tailwind or CSS Modules.</p>
+        </div>
+        <div>
+          <h3>Where did the rules come from?</h3>
+          <p>From de-slopping 27 production concept websites and the site that hosts them. Each rule exists because something went wrong or right during that work.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    <div class="wrap">
+      <span>MIT license, 2026, Elmir Mammadli</span>
+      <a href="https://github.com/elmir-mammadli/ai-deslop">github.com/elmir-mammadli/ai-deslop</a>
+    </div>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "name": "ai-deslop",
+  "description": "AI De-slop: a skill and audit script for removing the tells that make a website look AI-generated.",
+  "owner": {
+    "name": "Elmir Mammadli",
+    "url": "https://github.com/elmir-mammadli"
+  },
+  "plugins": [
+    {
+      "name": "ai-deslop",
+      "source": "./",
+      "description": "Find and remove the visual and copy tells that make a website look AI-generated.",
+      "version": "1.0.0"
+    }
+  ]
+}

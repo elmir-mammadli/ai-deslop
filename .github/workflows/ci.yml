@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: The sloppy example must fail
+        run: |
+          if python3 skills/ai-deslop/scripts/audit.py examples/before.html; then
+            echo "audit.py passed examples/before.html, which should fail"
+            exit 1
+          fi
+      - name: The fixed example and the docs must pass
+        run: python3 skills/ai-deslop/scripts/audit.py examples/after.html docs
